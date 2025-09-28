@@ -20,12 +20,14 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.hibernate.engine.internal.Collections;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.http.client.reactive.ReactorNetty2ClientHttpConnector;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -64,6 +66,14 @@ public class CustomerRestController {
                 connection.addHandlerLast(new ReadTimeoutHandler(5000, TimeUnit.MILLISECONDS));
                 connection.addHandlerLast(new WriteTimeoutHandler(5000, TimeUnit.MILLISECONDS));
             });
+    
+    @Autowired
+    private Environment env;
+    
+    @GetMapping("/check")
+    public String check(){
+        return "hi your property value is "+ env.getProperty("custom.activeprofileName");
+    }
 
     @GetMapping()
     public List<Customer> findAll() {
@@ -117,6 +127,9 @@ public class CustomerRestController {
             String productName = getProductName(x.getProductId()); // ⚠️ revisa si quieres usar getId() o getProductId()
             x.setProductName(productName);
         });
+        
+        List<?> transactions = getTransactions(customer.getIban());
+        customer.setTransactions(transactions);
 
         return ResponseEntity.ok(customer);
     }
@@ -135,6 +148,20 @@ public class CustomerRestController {
                 .block();
 
         return block != null && block.has("name") ? block.get("name").asText() : null;
+    }
+    
+    private List<?> getTransactions(String iban){
+        
+        WebClient build = webClientBuilder.clientConnector(new ReactorClientHttpConnector(client))
+                .baseUrl("http://localhost:8083/transaction")
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
+        
+        List<?> transactions = build.method(HttpMethod.GET).uri(uriBuilder -> uriBuilder
+                .path("/customer/transactions")
+                .queryParam("ibanAccount", iban).build()).retrieve().bodyToFlux(Object.class).collectList().block();
+    
+        
+        return transactions;
     }
 
 }
