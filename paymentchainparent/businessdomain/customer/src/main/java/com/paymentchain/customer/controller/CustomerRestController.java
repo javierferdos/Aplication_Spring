@@ -49,12 +49,15 @@ public class CustomerRestController {
 
     @Autowired
     CustomerRepository customerRepository;
-
-    private final WebClient.Builder webClientBuilder;
+    
+    @Autowired
+    private WebClient.Builder webClientBuilder;
+    /*private final WebClient.Builder webClientBuilder;
 
     public CustomerRestController(WebClient.Builder webClientBuilder) {
         this.webClientBuilder = webClientBuilder;
-    }
+    }*/
+    
 
     HttpClient client = HttpClient.create()
             .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
@@ -128,32 +131,31 @@ public class CustomerRestController {
             x.setProductName(productName);
         });
         
-        List<?> transactions = getTransactions(customer.getIban());
+       List<?> transactions = getTransactions(customer.getIban());
         customer.setTransactions(transactions);
 
         return ResponseEntity.ok(customer);
     }
 
     private String getProductName(Long id) {
-        WebClient webClient = webClientBuilder
-                .clientConnector(new ReactorClientHttpConnector(client))
-                .baseUrl("http://localhost:8082/product")
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .build();
+    WebClient webClient = webClientBuilder
+            .baseUrl("http://BUSINNESDOMAIN-PRODUCT/product")
+            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .build();
 
-        JsonNode block = webClient.get()
-                .uri("/{id}", id)
-                .retrieve()
-                .bodyToMono(JsonNode.class)
-                .block();
+    JsonNode block = webClient.get()
+            .uri("/{id}", id)
+            .retrieve()
+            .bodyToMono(JsonNode.class)
+            .block();
 
-        return block != null && block.has("name") ? block.get("name").asText() : null;
-    }
+    return block != null && block.has("name") ? block.get("name").asText() : null;
+}
     
     private List<?> getTransactions(String iban){
         
         WebClient build = webClientBuilder.clientConnector(new ReactorClientHttpConnector(client))
-                .baseUrl("http://localhost:8083/transaction")
+                .baseUrl("http://BUSINNESDOMAIN-TRANSACTIONS/transaction")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
         
         List<?> transactions = build.method(HttpMethod.GET).uri(uriBuilder -> uriBuilder
