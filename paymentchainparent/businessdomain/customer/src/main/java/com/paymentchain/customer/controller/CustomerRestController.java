@@ -44,7 +44,7 @@ import reactor.netty.http.client.HttpClient;
  * @author javie
  */
 @RestController
-@RequestMapping("/customer")
+@RequestMapping("/customer/V1")
 public class CustomerRestController {
 
     @Autowired
@@ -79,16 +79,31 @@ public class CustomerRestController {
     }
 
     @GetMapping()
-    public List<Customer> findAll() {
-        return customerRepository.findAll();
+    public ResponseEntity<?> findAll() {
+        List<Customer> findAll = customerRepository.findAll();
+        
+        if(findAll.isEmpty()){
+            return ResponseEntity.noContent().build();
+        }else{
+            return ResponseEntity.ok(findAll);
+        }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Customer> get(@PathVariable("id") Long id) {
+    public ResponseEntity<?> get(@PathVariable("id") Long id) {
+        Optional<Customer> findById = customerRepository.findById(id);
+        if(findById.isPresent()){
+            return ResponseEntity.ok(findById);
+        }else{
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+    }
+    /*public ResponseEntity<Customer> get(@PathVariable("id") Long id) {
         return customerRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
-    }
+    }*/
+    
 
     @PutMapping("/{id}")
     public ResponseEntity<Customer> updateCustomer(@PathVariable("id") long id, @RequestBody Customer input) {
@@ -112,7 +127,7 @@ public class CustomerRestController {
 
         input.getProducts().forEach(x -> x.setCustomer(input));
         Customer save = customerRepository.save(input);
-        return ResponseEntity.ok(save);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @DeleteMapping("/{id}")
