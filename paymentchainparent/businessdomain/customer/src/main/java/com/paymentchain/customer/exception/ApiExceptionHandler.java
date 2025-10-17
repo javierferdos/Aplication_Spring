@@ -25,4 +25,12 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(standarizedApiExceptionResponse);
     }
     
+    
+    @ExceptionHandler(bussinesRuleException.class)
+    public ResponseEntity<?> handlerbussinesRuleException(bussinesRuleException ex){
+        
+        StandarizedApiExceptionResponse standarizedApiExceptionResponse = new StandarizedApiExceptionResponse("TBUSSINES", "Error validacion", ex.getCode(), ex.getMessage());
+        return ResponseEntity.status(ex.getHttpStatus()).body(standarizedApiExceptionResponse);
+    }
+    
 }

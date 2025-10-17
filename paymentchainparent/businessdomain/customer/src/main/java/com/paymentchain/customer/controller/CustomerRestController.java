@@ -5,8 +5,10 @@
 package com.paymentchain.customer.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.paymentchain.customer.business.transactions.businessTransaction;
 import com.paymentchain.customer.entities.Customer;
 import com.paymentchain.customer.entities.CustomerProduct;
+import com.paymentchain.customer.exception.bussinesRuleException;
 import com.paymentchain.customer.repository.CustomerRepository;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.epoll.EpollChannelOption;
@@ -51,24 +53,7 @@ public class CustomerRestController {
     CustomerRepository customerRepository;
     
     @Autowired
-    private WebClient.Builder webClientBuilder;
-    /*private final WebClient.Builder webClientBuilder;
-
-    public CustomerRestController(WebClient.Builder webClientBuilder) {
-        this.webClientBuilder = webClientBuilder;
-    }*/
-    
-
-    HttpClient client = HttpClient.create()
-            .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
-            .option(ChannelOption.SO_KEEPALIVE, true)
-            .option(EpollChannelOption.TCP_KEEPIDLE, 300)
-            .option(EpollChannelOption.TCP_KEEPINTVL, 60)
-            .responseTimeout(Duration.ofSeconds(1))
-            .doOnConnected(connection -> {
-                connection.addHandlerLast(new ReadTimeoutHandler(5000, TimeUnit.MILLISECONDS));
-                connection.addHandlerLast(new WriteTimeoutHandler(5000, TimeUnit.MILLISECONDS));
-            });
+    businessTransaction bt;
     
     @Autowired
     private Environment env;
@@ -123,11 +108,10 @@ public class CustomerRestController {
     }
 
     @PostMapping
-    public ResponseEntity<?> post(@RequestBody Customer input) {
+    public ResponseEntity<?> post(@RequestBody Customer input) throws bussinesRuleException {
 
-        input.getProducts().forEach(x -> x.setCustomer(input));
-        Customer save = customerRepository.save(input);
-        return ResponseEntity.status(HttpStatus.CREATED).build();
+        Customer post = bt.post(input);
+        return ResponseEntity.status(HttpStatus.CREATED).body(post);
     }
 
     @DeleteMapping("/{id}")
@@ -138,47 +122,11 @@ public class CustomerRestController {
 
     @GetMapping("/full")
     public ResponseEntity<Customer> getByCode(@RequestParam("code") String code) {
-        Customer customer = customerRepository.findByCode(code);
-        List<CustomerProduct> products = customer.getProducts();
-
-        products.forEach(x -> {
-            String productName = getProductName(x.getProductId()); // ⚠️ revisa si quieres usar getId() o getProductId()
-            x.setProductName(productName);
-        });
-        
-       List<?> transactions = getTransactions(customer.getIban());
-        customer.setTransactions(transactions);
-
+        Customer customer = bt.getByCode(code);
+       
         return ResponseEntity.ok(customer);
+        
     }
 
-    private String getProductName(Long id) {
-    WebClient webClient = webClientBuilder
-            .baseUrl("http://BUSINNESDOMAIN-PRODUCT/product")
-            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .build();
-
-    JsonNode block = webClient.get()
-            .uri("/{id}", id)
-            .retrieve()
-            .bodyToMono(JsonNode.class)
-            .block();
-
-    return block != null && block.has("name") ? block.get("name").asText() : null;
-}
-    
-    private List<?> getTransactions(String iban){
-        
-        WebClient build = webClientBuilder.clientConnector(new ReactorClientHttpConnector(client))
-                .baseUrl("http://BUSINNESDOMAIN-TRANSACTIONS/transaction")
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
-        
-        List<?> transactions = build.method(HttpMethod.GET).uri(uriBuilder -> uriBuilder
-                .path("/customer/transactions")
-                .queryParam("ibanAccount", iban).build()).retrieve().bodyToFlux(Object.class).collectList().block();
-    
-        
-        return transactions;
-    }
 
 }
