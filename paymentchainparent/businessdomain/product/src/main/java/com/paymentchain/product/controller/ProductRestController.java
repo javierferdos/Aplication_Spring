@@ -4,6 +4,7 @@
  */
 package com.paymentchain.product.controller;
 
+import com.paymentchain.product.business.transactions.ProductService;
 import com.paymentchain.product.entities.Product;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,47 +26,43 @@ import io.swagger.v3.oas.annotations.Parameter;
  *
  * @author javie
  */
+
 @RestController
 @RequestMapping("/product")
 public class ProductRestController {
 
     @Autowired
-    ProductRepository productRepository;
+    ProductService productService;
 
-    @GetMapping()
-    public List<Product> findAll() {
-        return productRepository.findAll();
+    @GetMapping
+    public ResponseEntity<List<Product>> findAll() {
+        List<Product> all = productService.findAll();
+        if (all.isEmpty()) return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(all);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> get(@PathVariable("id") Long id) {
-        return productRepository.findById(id)
+    public ResponseEntity<Product> get(@PathVariable Long id) {
+        return productService.findById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable("id") Long id, @RequestBody Product input) {
-        return productRepository.findById(id)
-                .map(existingProduct -> {
-                    existingProduct.setName(input.getName());
-                    existingProduct.setCode(input.getCode());
-                    Product updated = productRepository.save(existingProduct);
-                    return ResponseEntity.ok(updated);
-                })
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    @PostMapping
+    public ResponseEntity<Product> post(@RequestBody Product input) {
+        Product created = productService.create(input);
+        return ResponseEntity.status(201).body(created);
     }
 
-    @PostMapping
-    public ResponseEntity<?> post(@RequestBody Product input) {
-        Product save = productRepository.save(input);
-        return ResponseEntity.ok(save);
+    @PutMapping("/{id}")
+    public ResponseEntity<Product> put(@PathVariable Long id, @RequestBody Product input) {
+        Product updated = productService.update(id, input);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Product> delete(@PathVariable("id") Long id) {
-        productRepository.deleteById(id);
-        return new ResponseEntity<>(HttpStatus.OK);
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        productService.delete(id);
+        return ResponseEntity.ok().build();
     }
-
 }

@@ -13,6 +13,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.List;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.netty.http.client.HttpClient;
 
 /**
@@ -66,7 +68,7 @@ public class businessTransaction {
     
     
    
-    public Customer post(Customer input) throws bussinesRuleException {
+    public Customer post(Customer input) throws bussinesRuleException, UnknownHostException {
         if(input.getProducts() != null){
             for(Iterator<CustomerProduct> it = input.getProducts().iterator(); it.hasNext();){
                 CustomerProduct dto = it.next();
@@ -91,8 +93,12 @@ public class businessTransaction {
 
     List<CustomerProduct> products = customer.getProducts();
     products.forEach(x -> {
-        String productName = getProductName(x.getProductId());
-        x.setProductName(productName);
+        try {
+            String productName = getProductName(x.getProductId());
+            x.setProductName(productName);
+        } catch (UnknownHostException ex) {
+            System.getLogger(businessTransaction.class.getName()).log(System.Logger.Level.ERROR, (String) null, ex);
+        }
     });
 
     List<?> transactions = getTransactions(customer.getIban());
@@ -102,18 +108,28 @@ public class businessTransaction {
 }
     
     
-    private String getProductName(Long id) {
+    private String getProductName(Long id) throws UnknownHostException  {
+        
+        JsonNode block;
+    try{
+        
     WebClient webClient = webClientBuilder
             .baseUrl("http://BUSINNESDOMAIN-PRODUCT/product")
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build();
 
-    JsonNode block = webClient.get()
+     block = webClient.get()
             .uri("/{id}", id)
             .retrieve()
             .bodyToMono(JsonNode.class)
             .block();
-
+    }catch (WebClientResponseException ex){
+        if(ex.getStatusCode().equals(HttpStatus.NOT_FOUND)){
+            return "";
+        }else{
+            throw new UnknownHostException(ex.getMessage());
+        }
+    }
     return block != null && block.has("name") ? block.get("name").asText() : null;
 }
     

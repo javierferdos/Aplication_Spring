@@ -14,6 +14,7 @@ import io.netty.channel.ChannelOption;
 import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -108,7 +109,7 @@ public class CustomerRestController {
     }
 
     @PostMapping
-    public ResponseEntity<?> post(@RequestBody Customer input) throws bussinesRuleException {
+    public ResponseEntity<?> post(@RequestBody Customer input) throws bussinesRuleException,UnknownHostException {
 
         Customer post = bt.post(input);
         return ResponseEntity.status(HttpStatus.CREATED).body(post);
