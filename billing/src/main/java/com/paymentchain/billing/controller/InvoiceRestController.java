@@ -5,6 +5,8 @@
  */
 package com.paymentchain.billing.controller;
 
+import com.paymentchain.billing.dto.InvoiceRequest;
+import com.paymentchain.billing.dto.InvoiceResponse;
 import com.paymentchain.billing.entities.Invoice;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +20,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import com.paymentchain.billing.respository.InvoiceRepository;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
 
@@ -27,14 +33,25 @@ import org.springframework.http.HttpStatus;
  */
 @RestController
 @RequestMapping("/billing")
+@Tag(name = "Billing API", description = "this api serve all funtionality for for management Invoices")
 public class InvoiceRestController {
     
     @Autowired
     InvoiceRepository billingRepository;
     
+    @Autowired
+    InvoiceRequestMapper irm;
+    
+    @Autowired
+    InvoiceResponseMapper irspm;
+    
+    
+    @Operation(description = "return all transaction bundled into Response", summary = "Return 204 if   no data fount")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "succes")})
+    @ApiResponse(responseCode = "500", description = "Internal error")
     @GetMapping()
-    public List<Invoice> list() {
-        return billingRepository.findAll();
+    public List<InvoiceResponse> list() {
+        return billingRepository.findAll();    
     }
     
     @GetMapping("/{id}")
@@ -48,12 +65,12 @@ public class InvoiceRestController {
     }
     
     @PutMapping("/{id}")
-    public ResponseEntity<?> put(@PathVariable String id, @RequestBody Invoice input) {
+    public ResponseEntity<?> put(@PathVariable String id, @RequestBody InvoiceRequest input) {
         return null;
     }
     
     @PostMapping
-    public ResponseEntity<?> post(@RequestBody Invoice input) {
+    public ResponseEntity<?> post(@RequestBody InvoiceRequest input) {
         Invoice save = billingRepository.save(input);
         return ResponseEntity.ok(save);
     }
