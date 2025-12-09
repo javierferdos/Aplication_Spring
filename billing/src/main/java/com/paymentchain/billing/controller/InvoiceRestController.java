@@ -5,6 +5,8 @@
  */
 package com.paymentchain.billing.controller;
 
+import com.paymentchain.billing.common.InvoiceRequestMapper;
+import com.paymentchain.billing.common.InvoiceResponseMapper;
 import com.paymentchain.billing.dto.InvoiceRequest;
 import com.paymentchain.billing.dto.InvoiceResponse;
 import com.paymentchain.billing.entities.Invoice;
@@ -46,42 +48,63 @@ public class InvoiceRestController {
     InvoiceResponseMapper irspm;
     
     
-    @Operation(description = "return all transaction bundled into Response", summary = "Return 204 if   no data fount")
-    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "succes")})
-    @ApiResponse(responseCode = "500", description = "Internal error")
+    @Operation(description = "Return all invoices bundled into Response", summary ="Return 204 if no data found")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200",description = "Exito"),
+    @ApiResponse(responseCode = "500", description = "Internal error")})
     @GetMapping()
     public List<InvoiceResponse> list() {
-        return billingRepository.findAll();    
-    }
+        List<Invoice> findAll = billingRepository.findAll();
+        List<InvoiceResponse> InvoiceListToInvoiceResposeList = irspm.InvoiceListToInvoiceResposeList(findAll);
+        return InvoiceListToInvoiceResposeList;
+    } 
+    
+    
     
     @GetMapping("/{id}")
-    public ResponseEntity<?>  get(@PathVariable long id) {
-          Optional<Invoice> invoice = billingRepository.findById(id);
-        if (invoice.isPresent()) {
-            return new ResponseEntity<>(invoice.get(), HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+    public InvoiceResponse get(@PathVariable String id) {
+        Optional<Invoice> findById = billingRepository.findById(Long.valueOf(id));
+        InvoiceResponse InvoiceToInvoiceRespose = irspm.InvoiceToInvoiceRespose(findById.get());
+        return InvoiceToInvoiceRespose;
     }
+    
+    
+    
+    
+    
+    
     
     @PutMapping("/{id}")
     public ResponseEntity<?> put(@PathVariable String id, @RequestBody InvoiceRequest input) {
-        return null;
+       Invoice save = null; 
+        Optional<Invoice> findById = billingRepository.findById(Long.valueOf(id));
+        Invoice get = findById.get();
+        if(get != null){   
+               get.setAmount(input.getAmount());
+               get.setDetail(input.getDetail());
+               get.setCustomerId(input.getCustomer());
+               get.setNumber(input.getNumber());
+                    save = billingRepository.save(get);                      
+        }
+          InvoiceResponse InvoiceToInvoiceRespose = irspm.InvoiceToInvoiceRespose(save);
+        return ResponseEntity.ok(InvoiceToInvoiceRespose);
     }
     
     @PostMapping
-    public ResponseEntity<?> post(@RequestBody InvoiceRequest input) {
-        Invoice save = billingRepository.save(input);
-        return ResponseEntity.ok(save);
+    public ResponseEntity<?> post(@RequestBody InvoiceRequest input) { 
+         Invoice InvoiceRequestToInvoice = irm.InvoiceRequestToInvoice(input);  
+        Invoice save = billingRepository.save(InvoiceRequestToInvoice);    
+        InvoiceResponse InvoiceToInvoiceRespose = irspm.InvoiceToInvoiceRespose(save);
+        return ResponseEntity.ok(InvoiceToInvoiceRespose);
     }
     
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable String id) {
-         Optional<Invoice> dto = billingRepository.findById(Long.valueOf(id));
-        if (!dto.isPresent()) {
-            return ResponseEntity.notFound().build();
+          Invoice save = null; 
+        Optional<Invoice> findById = billingRepository.findById(Long.valueOf(id));
+        Invoice get = findById.get();
+        if(get != null){               
+                  billingRepository.delete(get);  
         }
-        billingRepository.delete(dto.get());
         return ResponseEntity.ok().build();
     }
     

@@ -5,24 +5,23 @@
 package com.paymentchain.billing.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 
 /**
  *
  * @author javie
  */
-  @Schema(name = "InvoiceResponse", description = "model Represent a invoice on databse")
+@Schema(name = "InvoiceResponse", description = "Model represent a invoice on database")
+@Data
 public class InvoiceResponse {
-      
-      private Long id;
-      
-      @Schema(name = "Customer", required = true, example = "2", defaultValue = "1", description = "Unique id of customer that represent ")
+    
+       @Schema(name = "invoiceId", required = true,example = "2", defaultValue = "1", description = "Unique Id of iinvoice  on database")
+       private long invoiceId;
+         @Schema(name = "customer", required = true,example = "2", defaultValue = "1", description = "Unique Id of customer that represent the owner of invoice")
    private long customer;
-   
-   @Schema(name = "number", required = true, example = "2", defaultValue = "1", description = "Number given on fisical invoice")
+       @Schema(name = "number", required = true,example = "3", defaultValue = "8", description = "Number given on fisical invoice")
    private String number;
-   
    private String detail;
-   
-   private double amount;
+   private double amount;  
     
 }
